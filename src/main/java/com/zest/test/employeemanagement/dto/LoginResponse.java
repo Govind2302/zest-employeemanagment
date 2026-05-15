@@ -8,8 +8,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoginResponse {
-    private String accessToken;
-    private String refreshToken;
+    private String token;
     private String username;
     private String tokenType = "Bearer";
+
+    // Convenience constructor (token + username, tokenType defaults to Bearer)
+    public LoginResponse(String token, String username) {
+        this.token = token;
+        this.username = username;
+    }
 }

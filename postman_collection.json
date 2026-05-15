@@ -1,0 +1,240 @@
+{
+  "info": {
+    "name": "Employee Management API",
+    "_postman_id": "zest-emp-mgmt-2024",
+    "description": "Postman collection for Zest Employee Management System.\nBase URL: http://localhost:8080\n\nHow to use:\n1. Run 'POST /api/auth/login'\n2. The token is automatically saved to {{jwt_token}} variable\n3. All Employee endpoints use {{jwt_token}} automatically",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"testuser@zest.com\",\n  \"password\": \"test123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Register a new user. Returns 201 with a success message."
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('jwt_token', json.token);",
+                  "    console.log('Token saved:', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login with username and password. The JWT token is automatically saved to {{jwt_token}} collection variable for use in all other requests."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User (me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Returns the currently authenticated user's username and roles."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "Get All Employees (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/employees?page=0&size=10&sortBy=name&direction=asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees"],
+              "query": [
+                { "key": "page",      "value": "0",    "description": "Page number (0-indexed)" },
+                { "key": "size",      "value": "10",   "description": "Records per page" },
+                { "key": "sortBy",    "value": "name", "description": "Field to sort by: name, salary, dateOfJoining" },
+                { "key": "direction", "value": "asc",  "description": "Sort direction: asc or desc" }
+              ]
+            },
+            "description": "Get all employees with pagination and sorting."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employee by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/employees/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees", "1"]
+            },
+            "description": "Get a single employee by their ID. Returns 404 if not found."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employees by Department",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/employees/department/1?page=0&size=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees", "department", "1"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "description": "Get all employees in a specific department (by department ID) with pagination.\nDepartment IDs from seed data:\n1=Engineering, 2=HR, 3=Finance, 4=Marketing, 5=Operations"
+          },
+          "response": []
+        },
+        {
+          "name": "Search Employees by Name",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/employees/search?name=rohit&page=0&size=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees", "search"],
+              "query": [
+                { "key": "name", "value": "rohit", "description": "Partial name search (case-insensitive)" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "description": "Search employees by partial name match (case-insensitive)."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Amol Shrivastav\",\n  \"email\": \"amol@gmail.com\",\n  \"departmentId\": 1,\n  \"positionId\": 3,\n  \"salary\": 50000.00,\n  \"dateOfJoining\": \"2024-01-15\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/employees",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees"]
+            },
+            "description": "Create a new employee. Returns 201 with the created employee.\n\nDepartment IDs: 1=Engineering, 2=HR, 3=Finance, 4=Marketing, 5=Operations\nPosition IDs: 1=Junior Developer, 2=Senior Developer, 3=Team Lead, 4=Manager, 5=Analyst, 6=HR Executive, 7=Accountant"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Amol Shrivastav\",\n  \"email\": \"amol@gmail.com\",\n  \"departmentId\": 2,\n  \"positionId\": 4,\n  \"salary\": 65000.00,\n  \"dateOfJoining\": \"2024-01-15\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/employees/3",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees", "1"]
+            },
+            "description": "Full update of an existing employee by ID. Returns 200 with the updated employee."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Employee (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/employees/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees", "1"]
+            },
+            "description": "Soft deletes an employee — sets is_active = false. The record stays in the DB. Returns a success message."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
