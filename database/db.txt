@@ -163,11 +163,11 @@ INSERT INTO user_roles (user_id, role_id) VALUES (1, 1);
 
 -- Sample employees
 INSERT INTO employees (name, email, department_id, position_id, salary, date_of_joining) VALUES
-    ('Rahul Sharma',   'rahul.sharma@zest.com',   1, 1, 45000.00,  '2023-06-01'),
-    ('Priya Mehta',    'priya.mehta@zest.com',    1, 2, 75000.00,  '2022-03-15'),
-    ('Amit Verma',     'amit.verma@zest.com',     2, 6, 40000.00,  '2023-09-10'),
-    ('Sneha Joshi',    'sneha.joshi@zest.com',    3, 7, 55000.00,  '2021-11-20'),
-    ('Karan Patel',    'karan.patel@zest.com',    1, 3, 90000.00,  '2020-07-05');
+    ('Rohit Sharma',   'rohit.sharma@gmail.com',   1, 1, 45000.00,  '2023-06-01'),
+    ('Laxman Dhotre',    'laxman.dhotre@gmail.com',    1, 2, 75000.00,  '2022-03-15'),
+    ('Mohit Dhande',     'mohit.dhande@gmail.com',     2, 6, 40000.00,  '2023-09-10'),
+    ('Sneha Joshi',    'sneha.joshi@gmail.com',    3, 7, 55000.00,  '2021-11-20'),
+    ('Rishabh Aditya',    'rishabh.aditya@gmail.com',    1, 3, 90000.00,  '2020-07-05');
 
 -- =============================================================
 -- QUICK VERIFY QUERIES (run these after import to check setup)
