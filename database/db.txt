@@ -1,0 +1,179 @@
+-- =============================================================
+--  DATABASE: zest_employee_db
+--  Project : Employee Management System (Zest India Assignment)
+--  Author  : Govind
+--  Notes   : Fully normalized to 3NF
+--            Tables: departments, positions, users, employees,
+--                    roles, user_roles, refresh_tokens
+-- =============================================================
+
+CREATE DATABASE IF NOT EXISTS zest_employee_db
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
+USE zest_employee_db;
+
+-- =============================================================
+-- TABLE 1: departments
+-- Extracted from employee to avoid repeating dept name strings.
+-- One department can have many employees. (1NF, 2NF, 3NF clean)
+-- =============================================================
+CREATE TABLE departments (
+    id          INT UNSIGNED    AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(100)    NOT NULL UNIQUE,
+    created_at  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =============================================================
+-- TABLE 2: positions
+-- Extracted from employee to avoid repeating position strings.
+-- Normalized separately because position is independent of dept.
+-- e.g., "Manager" can exist in both HR and Engineering.
+-- =============================================================
+CREATE TABLE positions (
+    id          INT UNSIGNED    AUTO_INCREMENT PRIMARY KEY,
+    title       VARCHAR(100)    NOT NULL UNIQUE,
+    created_at  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =============================================================
+-- TABLE 3: roles
+-- For JWT role-based authorization: ROLE_ADMIN, ROLE_USER etc.
+-- Separated so roles are not hardcoded in the users table.
+-- =============================================================
+CREATE TABLE roles (
+    id          INT UNSIGNED    AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(50)     NOT NULL UNIQUE   -- e.g. ROLE_ADMIN, ROLE_USER
+);
+
+-- =============================================================
+-- TABLE 4: users
+-- Stores login credentials. Kept separate from employees because
+-- not every user is necessarily an employee record, and not every
+-- employee may have a login account (separation of concerns).
+-- Password stored as BCrypt hash (never plain text).
+-- =============================================================
+CREATE TABLE users (
+    id              BIGINT UNSIGNED     AUTO_INCREMENT PRIMARY KEY,
+    username        VARCHAR(50)         NOT NULL UNIQUE,
+    email           VARCHAR(150)        NOT NULL UNIQUE,
+    password_hash   VARCHAR(255)        NOT NULL,          -- BCrypt hash
+    is_active       TINYINT(1)          NOT NULL DEFAULT 1,
+    created_at      TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                                ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- =============================================================
+-- TABLE 5: user_roles  (Junction table — Users <-> Roles)
+-- A user can have multiple roles (e.g., ROLE_USER + ROLE_ADMIN).
+-- Many-to-Many resolved via this bridge table. (3NF compliant)
+-- =============================================================
+CREATE TABLE user_roles (
+    user_id     BIGINT UNSIGNED     NOT NULL,
+    role_id     INT UNSIGNED        NOT NULL,
+    PRIMARY KEY (user_id, role_id),
+    CONSTRAINT fk_ur_user   FOREIGN KEY (user_id) REFERENCES users(id)     ON DELETE CASCADE,
+    CONSTRAINT fk_ur_role   FOREIGN KEY (role_id) REFERENCES roles(id)     ON DELETE CASCADE
+);
+
+-- =============================================================
+-- TABLE 6: employees
+-- Core business table. department_id and position_id are FKs
+-- to their own tables (no repeating strings — 3NF satisfied).
+-- salary kept here as it is a direct attribute of employment.
+-- =============================================================
+CREATE TABLE employees (
+    id                  BIGINT UNSIGNED     AUTO_INCREMENT PRIMARY KEY,
+    name                VARCHAR(150)        NOT NULL,
+    email               VARCHAR(150)        NOT NULL UNIQUE,
+    department_id       INT UNSIGNED        NOT NULL,
+    position_id         INT UNSIGNED        NOT NULL,
+    salary              DECIMAL(12, 2)      NOT NULL CHECK (salary >= 0),
+    date_of_joining     DATE                NOT NULL,
+    is_active           TINYINT(1)          NOT NULL DEFAULT 1,
+    created_at          TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                                     ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_emp_dept  FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_emp_pos   FOREIGN KEY (position_id)   REFERENCES positions(id)   ON DELETE RESTRICT
+);
+
+-- =============================================================
+-- TABLE 7: refresh_tokens
+-- Stores JWT refresh tokens per user so you can:
+--   1. Invalidate tokens on logout (proper JWT lifecycle)
+--   2. Issue new access tokens without re-login
+-- This is what "use tokens properly" means in production.
+-- =============================================================
+CREATE TABLE refresh_tokens (
+    id          BIGINT UNSIGNED     AUTO_INCREMENT PRIMARY KEY,
+    user_id     BIGINT UNSIGNED     NOT NULL UNIQUE,        -- one active refresh token per user
+    token       VARCHAR(512)        NOT NULL UNIQUE,
+    expiry_date DATETIME            NOT NULL,
+    created_at  TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_rt_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- =============================================================
+-- INDEXES  (for pagination + sorting performance on employees)
+-- =============================================================
+CREATE INDEX idx_emp_department   ON employees(department_id);
+CREATE INDEX idx_emp_position     ON employees(position_id);
+CREATE INDEX idx_emp_name         ON employees(name);
+CREATE INDEX idx_emp_salary       ON employees(salary);
+CREATE INDEX idx_emp_joining      ON employees(date_of_joining);
+
+-- =============================================================
+-- SEED DATA
+-- =============================================================
+
+-- Roles
+INSERT INTO roles (name) VALUES
+    ('ROLE_ADMIN'),
+    ('ROLE_USER');
+
+-- Departments
+INSERT INTO departments (name) VALUES
+    ('Engineering'),
+    ('Human Resources'),
+    ('Finance'),
+    ('Marketing'),
+    ('Operations');
+
+-- Positions
+INSERT INTO positions (title) VALUES
+    ('Junior Developer'),
+    ('Senior Developer'),
+    ('Team Lead'),
+    ('Manager'),
+    ('Analyst'),
+    ('HR Executive'),
+    ('Accountant');
+
+-- Admin user  (password = Admin@123  →  BCrypt hash below)
+-- To regenerate: https://bcrypt-generator.com  (rounds=10)
+INSERT INTO users (username, email, password_hash) VALUES
+    ('admin', 'admin@zest.com', '$2a$10$7QJ8Q1ZQwXk5x5w5w5w5wO5w5w5w5w5w5w5w5w5w5w5w5w5w5w5w');
+
+-- Assign ROLE_ADMIN to admin user (user id=1, role id=1)
+INSERT INTO user_roles (user_id, role_id) VALUES (1, 1);
+
+-- Sample employees
+INSERT INTO employees (name, email, department_id, position_id, salary, date_of_joining) VALUES
+    ('Rahul Sharma',   'rahul.sharma@zest.com',   1, 1, 45000.00,  '2023-06-01'),
+    ('Priya Mehta',    'priya.mehta@zest.com',    1, 2, 75000.00,  '2022-03-15'),
+    ('Amit Verma',     'amit.verma@zest.com',     2, 6, 40000.00,  '2023-09-10'),
+    ('Sneha Joshi',    'sneha.joshi@zest.com',    3, 7, 55000.00,  '2021-11-20'),
+    ('Karan Patel',    'karan.patel@zest.com',    1, 3, 90000.00,  '2020-07-05');
+
+-- =============================================================
+-- QUICK VERIFY QUERIES (run these after import to check setup)
+-- =============================================================
+-- SELECT * FROM departments;
+-- SELECT * FROM positions;
+-- SELECT * FROM roles;
+-- SELECT u.username, r.name AS role FROM users u JOIN user_roles ur ON u.id=ur.user_id JOIN roles r ON r.id=ur.role_id;
+-- SELECT e.name, d.name AS dept, p.title AS position, e.salary FROM employees e JOIN departments d ON d.id=e.department_id JOIN positions p ON p.id=e.position_id;
